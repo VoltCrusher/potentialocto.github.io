@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Solo Leveling: Exercise Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500&display=swap" rel="stylesheet">
+<style>
+/* === BASE === */
+body {
+  font-family: 'Orbitron', sans-serif;
+  margin: 0;
+  background: linear-gradient(270deg, #0a0a0f, #1b1b2e, #0a0a0f);
+  background-size: 600% 600%;
+  animation: bgShift 20s ease infinite;
+  color: #e6e6fa;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+@keyframes bgShift {
+  0% {background-position:0% 50%;}
+  50% {background-position:100% 50%;}
+  100% {background-position:0% 50%;}
+}
+h1,h2,h3 {
+  text-align:center;
+  background: linear-gradient(90deg, #00ffe1, #0077ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 18px rgba(0,255,255,0.8), 0 0 10px rgba(0,87,255,0.6);
+  margin:12px 0;
+}
+.container { max-width:900px; margin:auto; padding:20px; }
+
+/* === GLASS PANEL === */
+.centered-box, .container {
+  background: rgba(20,20,40,0.6);
+  backdrop-filter: blur(14px);
+  border-radius: 20px;
+  box-shadow: 0 0 25px rgba(0,200,255,0.3);
+}
+.centered-box {
+  max-width:420px; margin:60px auto; padding:30px;
+  opacity:0; transform:translateY(20px); transition:opacity 0.5s, transform 0.5s;
+}
+.centered-box.show { opacity:1; transform:translateY(0);}
+.error-msg { color:#ff6666; font-weight:bold; margin-bottom:12px; text-align:center; }
+
+/* === INPUTS & BUTTONS === */
+input, button {
+  font-family: inherit; font-size:1rem; border-radius:10px; border:none; outline:none;
+  transition: all 0.3s ease;
+}
+input[type="text"], input[type="password"], input[type="number"], input[type="file"] {
+  width:100%; padding:12px; margin:6px 0 14px;
+  background: rgba(17,17,34,0.9);
+  color:#e6f7ff;
+  border:1px solid rgba(0,255,255,0.2);
+  box-sizing: border-box;
+}
+input:focus {
+  box-shadow: 0 0 14px #00e1ff,0 0 24px #00ffe1;
+  border-color:#00ffe1; transform:scale(1.03);
+}
+input[type="number"] { width:80px; text-align:center; }
+button {
+  background: linear-gradient(135deg,#00aaff,#005577);
+  color:#fff; font-weight:bold; padding:10px 18px; margin:4px;
+  box-shadow:0 0 15px rgba(0,255,255,0.5); cursor:pointer; letter-spacing:1px;
+}
+button:hover {
+  background: linear-gradient(135deg,#00ddff,#0077aa);
+  box-shadow:0 0 22px #00eaff,0 0 16px #0088ff; transform: translateY(-2px) scale(1.05);
+}
+.link-btn { background:none; border:none; color:#00ffe1; cursor:pointer; text-decoration:underline; font-size:0.95rem; }
+.link-btn:hover { color:#007bff; }
+
+/* === PLAYER PANEL === */
+#playerAvatar, #avatarPreview {
+  border-radius:50%;
+  border:3px solid #00ffe1;
+  box-shadow:0 0 22px #00ccff,0 0 14px #0077ff inset;
+  transition: transform 0.3s;
+}
+#playerAvatar:hover { transform:scale(1.1) rotate(5deg); }
+#avatarPreview { display:block; margin:10px auto; width:100px; height:100px; border:2px solid #00ffe1; }
+
+/* === STATS === */
+p { margin:8px 0; }
+p span { color:#00eaff; font-weight:bold; }
+
+/* === EXERCISES === */
+.exercise-row {
+  display:flex; justify-content:space-between; align-items:center;
+  margin-bottom:12px; padding:14px; border-radius:14px;
+  background:rgba(17,17,34,0.8); border:1px solid rgba(0,255,255,0.15);
+  transition: transform 0.25s, box-shadow 0.25s;
+}
+.exercise-row:hover { transform: scale(1.05); }
+.exercise-label { font-weight:bold; font-size:1.05rem; }
+.exercise-stats { font-size:0.8rem; font-style:italic; }
+.strength { border-left:5px solid #ff4444; box-shadow:0 0 12px rgba(255,68,68,0.3); }
+.cardio { border-left:5px solid #44ff44; box-shadow:0 0 12px rgba(68,255,68,0.3); }
+.flex { border-left:5px solid #4488ff; box-shadow:0 0 12px rgba(68,136,255,0.3); }
+.mind { border-left:5px solid #aa66ff; box-shadow:0 0 12px rgba(170,102,255,0.3); }
+.fun { border-left:5px solid #ff44ff; box-shadow:0 0 12px rgba(255,68,255,0.3); }
+
+/* === XP BAR === */
+.progress-bar { background: rgba(20,20,40,0.9); border-radius:14px; overflow:hidden; margin-top:12px; border:1px solid rgba(0,255,255,0.3); box-shadow:0 0 6px #00ccff inset; position:relative;}
+.progress { height:22px; width:0%; background: linear-gradient(90deg,#00ffe1,#007bff,#00ffe1); background-size:200% 100%; animation:pulse 2s infinite linear; transition: width 0.8s ease-in-out; box-shadow:0 0 20px rgba(0,255,255,0.6); }
+@keyframes pulse { 0%{background-position:0% 0%} 50%{background-position:100% 0%} 100%{background-position:0% 0%} }
+
+/* === XP FLOAT === */
+.xp-float { position:absolute; font-weight:bold; font-size:1.2rem; pointer-events:none; animation:floatUpFade 1.2s ease-out forwards; text-shadow:0 0 8px #00ccff; }
+@keyframes floatUpFade { 0% {transform:translateY(0px); opacity:0;} 15% {opacity:1;} 100% {transform:translateY(-50px); opacity:0;} }
+
+/* === LEVEL-UP ALERT === */
+#levelUpAlert { position:fixed; top:20%; left:50%; transform:translateX(-50%); background: linear-gradient(135deg,#ffdd00,#ffaa00); padding:22px 44px; font-size:1.6rem; font-weight:bold; border-radius:20px; box-shadow:0 0 28px #ffdd00,0 0 14px #ffaa00 inset; opacity:0; pointer-events:none; transition:opacity 0.5s, transform 0.5s; text-align:center; z-index:9999; }
+#levelUpAlert.show { opacity:1; transform:translateX(-50%) translateY(-20px) scale(1.05); animation: glowPulse 1s infinite alternate; }
+@keyframes glowPulse { from { box-shadow:0 0 28px #ffdd00,0 0 14px #ffaa00 inset; } to { box-shadow:0 0 40px #fff166,0 0 18px #ffaa00 inset; } }
+
+/* === LOGOUT BTN === */
+#logoutBtn { background:linear-gradient(135deg,#cc0000,#ff4444); box-shadow:0 0 14px #ff5555; }
+#logoutBtn:hover { background:linear-gradient(135deg,#ff5555,#cc0000); box-shadow:0 0 24px #ff7777; }
+
+/* === LEADERBOARD === */
+#leaderboard { margin-top:20px; padding:12px; background: rgba(20,20,40,0.7); border-radius:14px; box-shadow:0 0 18px #00ffe1 inset; }
+#leaderboard h3 { margin:8px 0; }
+#leaderboard ul { list-style:none; padding:0; margin:0; }
+#leaderboard li { padding:6px; border-bottom:1px solid rgba(0,255,255,0.2); }
+
+/* === MISSIONS === */
+#missions { margin-top:20px; padding:12px; background: rgba(20,20,40,0.7); border-radius:14px; box-shadow:0 0 18px #aa66ff inset; }
+.mission { display:flex; justify-content:space-between; padding:6px 0; }
+
+/* === ACHIEVEMENTS === */
+#achievements { margin-top:20px; padding:12px; background: rgba(20,20,40,0.7); border-radius:14px; box-shadow:0 0 18px #ffaa00 inset; display:flex; flex-wrap:wrap; gap:8px; }
+.badge { background: rgba(0,255,255,0.2); padding:6px 10px; border-radius:8px; font-size:0.85rem; display:flex; align-items:center; gap:4px; animation:badgeGlow 2s infinite alternate; }
+@keyframes badgeGlow { from {box-shadow:0 0 4px #00ffe1;} to {box-shadow:0 0 12px #00ffff;} }
+
+/* === FIREWORKS === */
+.firework { position:absolute; width:6px; height:6px; border-radius:50%; background:#ffdd00; pointer-events:none; animation:fireworkFall 1s ease-out forwards; }
+@keyframes fireworkFall { 0% {transform:translateY(0) scale(1); opacity:1;} 100% {transform:translateY(200px) scale(0.5); opacity:0;} }
+
+</style>
+</head>
+<body>
+
+<div id="levelUpAlert">Level Up!</div>
+
+<!-- LOGIN -->
+<div id="loginScreen" class="centered-box">
+  <h2>Login</h2>
+  <div id="loginError" class="error-msg"></div>
+  <input type="text" id="loginUsername" placeholder="Username">
+  <input type="password" id="loginPassword" placeholder="Password">
+  <button id="loginBtn">Login</button>
+  <p>Don’t have an account? <button class="link-btn" id="toSignup">Sign up</button></p>
+</div>
+
+<!-- SIGNUP -->
+<div id="signupScreen" class="centered-box">
+  <h2>Sign Up</h2>
+  <div id="signupError" class="error-msg"></div>
+  <input type="text" id="signupUsername" placeholder="Username">
+  <input type="password" id="signupPassword" placeholder="Password">
+  <input type="password" id="signupPasswordConfirm" placeholder="Confirm Password">
+  <button id="signupBtn">Create Account</button>
+  <p>Already have an account? <button class="link-btn" id="toLogin">Login</button></p>
+</div>
+
+<!-- PROFILE EDIT -->
+<div id="editProfileScreen" class="centered-box">
+  <h2>Edit Profile</h2>
+  <div id="editError" class="error-msg"></div>
+  <input type="text" id="editUsername" placeholder="New Username">
+  <input type="password" id="editPassword" placeholder="New Password">
+  <input type="file" id="editAvatarFile" accept="image/*">
+  <img id="avatarPreview" src="" alt="Avatar Preview">
+  <button id="saveProfileBtn">Save Changes</button>
+  <p><button class="link-btn" id="cancelEdit">Cancel</button></p>
+</div>
+
+<!-- TRACKER -->
+<div id="trackerScreen" class="container" style="margin-top:30px;">
+  <h1>Solo Leveling Exercise Tracker</h1>
+  <h2>Train. Grind. Ascend.</h2>
+
+  <div style="text-align:center; position: relative;">
+    <img id="playerAvatar" src="https://i.imgur.com/UWbYgJj.png" alt="Avatar" style="width:120px;height:120px;">
+    <h3 id="playerName">Hunter</h3>
+    <button id="logoutBtn">Logout</button>
+    <button class="link-btn" id="editProfileBtn">Edit Profile</button>
+  </div>
+
+  <h3>Player Stats</h3>
+  <p><b>Name:</b> <span id="playerNameDisplay">Hunter</span></p>
+  <p><b>Level:</b> <span id="level">1</span></p>
+  <p><b>XP:</b> <span id="xp">0</span> / <span id="xpToNextLevel">100</span></p>
+  <div class="progress-bar"><div id="xpBar" class="progress"></div></div>
+  <p><b>Strength:</b> <span id="strength">10</span></p>
+  <p><b>Agility:</b> <span id="agility">8</span></p>
+  <p><b>Intelligence:</b> <span id="intelligence">7</span></p>
+
+  <h3>Exercises</h3>
+  <div id="exerciseButtons"></div>
+
+  <!-- Leaderboard -->
+  <div id="leaderboard">
+    <h3>🏆 Leaderboard</h3>
+    <ul id="leaderboardList"></ul>
+  </div>
+
+  <!-- Daily Missions -->
+  <div id="missions">
+    <h3>📋 Daily Missions</h3>
+  </div>
+
+  <!-- Achievements -->
+  <div id="achievements">
+    <h3>🎖 Achievements</h3>
+  </div>
+
+</div>
+
+<script>
+/* === USERS & INIT === */
+let users = JSON.parse(localStorage.getItem("users")) || {};
+let currentUser = null;
+if(!Object.keys(users).length){
+  users["Hunter"]={password:"pass", avatar:"https://i.imgur.com/UWbYgJj.png", level:1, xp:0, strength:10, agility:8, intelligence:7, exercises:0, achievements:[], cosmetics:[]};
+  localStorage.setItem("users",JSON.stringify(users));
+}
+
+/* === DISPLAY FUNCTIONS === */
+const loginScreen=document.getElementById("loginScreen"),
+      signupScreen=document.getElementById("signupScreen"),
+      trackerScreen=document.getElementById("trackerScreen"),
+      editProfileScreen=document.getElementById("editProfileScreen"),
+      loginError=document.getElementById("loginError"),
+      signupError=document.getElementById("signupError"),
+      editError=document.getElementById("editError"),
+      levelUpAlert=document.getElementById("levelUpAlert");
+
+function fade(el,show=true){ el.style.opacity=show?"1":"0"; el.style.display=show?"block":"none"; }
+function showScreen(screen){ [loginScreen,signupScreen,trackerScreen,editProfileScreen].forEach(s=>s!==screen?s.style.display="none":fade(s,true)); }
+function getXpToNext(lv){ return 100+(lv-1)*40; }
+function showLevelUp(lv){ 
+  levelUpAlert.textContent=`⚡ Level Up! You reached ${lv}!`; 
+  levelUpAlert.classList.add("show"); 
+  createFireworks();
+  setTimeout(()=>levelUpAlert.classList.remove("show"),2000); 
+}
+
+function updateDisplay(gain=0){
+  if(!currentUser) return;
+  const u=users[currentUser];
+  document.getElementById("level").textContent=u.level;
+  document.getElementById("xp").textContent=u.xp;
+  const xpNext=getXpToNext(u.level);
+  document.getElementById("xpToNextLevel").textContent=xpNext;
+  document.getElementById("xpBar").style.width=Math.min(100,(u.xp/xpNext)*100)+"%";
+  if(gain>0){
+    const f=document.createElement("div");
+    f.className="xp-float"; f.textContent=`+${gain} XP`;
+    document.querySelector("#trackerScreen div[style*='position: relative']").appendChild(f);
+    setTimeout(()=>f.remove(),1200);
+  }
+  document.getElementById("strength").textContent=u.strength;
+  document.getElementById("agility").textContent=u.agility;
+  document.getElementById("intelligence").textContent=u.intelligence;
+
+  updateLeaderboard();
+  updateMissions();
+  updateAchievements();
+}
+
+/* === EXERCISES === */
+const exercises = {
+  "🏋️ Strength":[
+    {name:"Push-ups", xp:15, strength:3, agility:1, intelligence:0, unit:"reps", color:"#ff4444"},
+    {name:"Squats", xp:18, strength:4, agility:1, intelligence:0, unit:"reps", color:"#ff4444"},
+    {name:"Pull-ups", xp:20, strength:5, agility:2, intelligence:0, unit:"reps", color:"#ff4444"},
+    {name:"Weight Lifting", xp:25, strength:6, agility:1, intelligence:0, unit:"kg", color:"#ff4444"}
+  ],
+  "🏃 Cardio":[
+    {name:"Running", xp:24, strength:3, agility:5, intelligence:0, unit:"km", color:"#44ff44"},
+    {name:"Cycling", xp:20, strength:2, agility:4, intelligence:0, unit:"km", color:"#44ff44"},
+    {name:"Jump Rope", xp:12, strength:1, agility:3, intelligence:0, unit:"minutes", color:"#44ff44"},
+    {name:"Swimming", xp:30, strength:4, agility:4, intelligence:0, unit:"laps", color:"#44ff44"}
+  ],
+  "🧘 Flexibility":[
+    {name:"Yoga", xp:10, strength:0, agility:1, intelligence:5, unit:"minutes", color:"#4488ff"},
+    {name:"Stretching", xp:8, strength:0, agility:2, intelligence:1, unit:"minutes", color:"#4488ff"},
+    {name:"Plank", xp:14, strength:3, agility:1, intelligence:0, unit:"minutes", color:"#4488ff"}
+  ],
+  "🧠 Mindfulness":[
+    {name:"Meditation", xp:8, strength:0, agility:0, intelligence:6, unit:"minutes", color:"#aa66ff"},
+    {name:"Breathing Exercises", xp:6, strength:0, agility:0, intelligence:4, unit:"minutes", color:"#aa66ff"}
+  ],
+  "🎶 Fun":[
+    {name:"Dancing", xp:15, strength:1, agility:4, intelligence:1, unit:"minutes", color:"#ff44ff"},
+    {name:"Martial Arts", xp:28, strength:5, agility:5, intelligence:2, unit:"minutes", color:"#ff44ff"}
+  ]
+};
+const container=document.getElementById("exerciseButtons");
+function renderExercises(){
+  container.innerHTML="";
+  for(const [cat,list] of Object.entries(exercises)){
+    const h=document.createElement("h3"); h.textContent=cat; container.appendChild(h);
+    list.forEach(ex=>{
+      const row=document.createElement("div");
+      let cls=cat.includes("Strength")?"strength":cat.includes("Cardio")?"cardio":cat.includes("Flex")?"flex":cat.includes("Mind")?"mind":"fun";
+      row.className="exercise-row "+cls;
+      row.innerHTML=`
+        <div><div class="exercise-label">${ex.name}</div>
+        <div class="exercise-stats">XP ${ex.xp}/${ex.unit} | STR+${ex.strength} AGI+${ex.agility} INT+${ex.intelligence}</div></div>
+        <input type="number" min="1" value="1" id="in-${ex.name}">
+        <button data-ex="${ex.name}" data-cat="${cat}">Train</button>
+      `;
+      container.appendChild(row);
+    });
+  }
+  container.querySelectorAll("button").forEach(btn=>btn.addEventListener("click", ()=>performExercise(btn.dataset.ex,btn.dataset.cat)));
+}
+
+function performExercise(name,cat){
+  const ex=exercises[cat].find(e=>e.name===name), amt=parseInt(document.getElementById("in-"+name).value)||0;
+  if(amt<=0) return;
+  const u=users[currentUser], gain=ex.xp*amt;
+  u.xp+=gain; u.strength+=ex.strength*amt; u.agility+=ex.agility*amt; u.intelligence+=ex.intelligence*amt;
+  u.exercises+=(amt); // track total exercises
+  while(u.xp>=getXpToNext(u.level)){ u.xp-=getXpToNext(u.level); u.level++; showLevelUp(u.level); }
+  users[currentUser]=u; localStorage.setItem("users",JSON.stringify(users)); updateDisplay(gain);
+}
+
+/* === PROFILE & NAV === */
+document.getElementById("editProfileBtn").addEventListener("click",()=>{ loadEditProfile(); showScreen(editProfileScreen); });
+document.getElementById("cancelEdit").addEventListener("click",()=>showScreen(trackerScreen));
+function loadEditProfile(){
+  const u=users[currentUser];
+  document.getElementById("editUsername").value=currentUser;
+  document.getElementById("editPassword").value=u.password;
+  document.getElementById("avatarPreview").src=u.avatar;
+  document.getElementById("editAvatarFile").onchange=function(e){
+    const reader=new FileReader(); reader.onload=ev=>document.getElementById("avatarPreview").src=ev.target.result;
+    reader.readAsDataURL(e.target.files[0]);
+  }
+}
+document.getElementById("saveProfileBtn").addEventListener("click",()=>{
+  const u=users[currentUser];
+  const newUser=document.getElementById("editUsername").value.trim();
+  if(newUser && newUser!==currentUser){ users[newUser]=u; delete users[currentUser]; currentUser=newUser; }
+  u.password=document.getElementById("editPassword").value;
+  u.avatar=document.getElementById("avatarPreview").src;
+  users[currentUser]=u; localStorage.setItem("users",JSON.stringify(users)); showScreen(trackerScreen); updateDisplay();
+});
+document.getElementById("logoutBtn").addEventListener("click",()=>{ currentUser=null; showScreen(loginScreen); });
+
+/* === LOGIN/SIGNUP === */
+document.getElementById("loginBtn").addEventListener("click",()=>{
+  const u=document.getElementById("loginUsername").value.trim(), p=document.getElementById("loginPassword").value;
+  if(users[u] && users[u].password===p){ currentUser=u; showScreen(trackerScreen); renderExercises(); updateDisplay(); }
+  else loginError.textContent="Invalid credentials";
+});
+document.getElementById("signupBtn").addEventListener("click",()=>{
+  const u=document.getElementById("signupUsername").value.trim(), p=document.getElementById("signupPassword").value, pc=document.getElementById("signupPasswordConfirm").value;
+  if(!u||!p){ signupError.textContent="Enter username/password"; return; }
+  if(p!==pc){ signupError.textContent="Passwords do not match"; return; }
+  if(users[u]){ signupError.textContent="Username exists"; return; }
+  users[u]={password:p, avatar:"https://i.imgur.com/UWbYgJj.png", level:1, xp:0, strength:10, agility:8, intelligence:7, exercises:0, achievements:[], cosmetics:[]};
+  localStorage.setItem("users",JSON.stringify(users)); currentUser=u; showScreen(trackerScreen); renderExercises(); updateDisplay();
+});
+document.getElementById("toSignup").addEventListener("click",()=>showScreen(signupScreen));
+document.getElementById("toLogin").addEventListener("click",()=>showScreen(loginScreen));
+
+/* === LEADERBOARD === */
+function updateLeaderboard(){
+  const list=document.getElementById("leaderboardList");
+  list.innerHTML="";
+  const sorted=Object.entries(users).sort((a,b)=>b[1].xp-a[1].xp);
+  sorted.slice(0,5).forEach(([name,data],i)=>{
+    const li=document.createElement("li");
+    li.textContent=`${i+1}. ${name} - XP: ${data.xp} | STR: ${data.strength} | Exercises: ${data.exercises}`;
+    list.appendChild(li);
+  });
+}
+
+/* === MISSIONS === */
+const dailyMissions = [
+  {desc:"🏃 Run 3 km today", completed:false, reward:15},
+  {desc:"🧘 Do 10 minutes Yoga", completed:false, reward:10},
+  {desc:"🎶 Dance 15 minutes", completed:false, reward:12}
+];
+function updateMissions(){
+  const mDiv=document.getElementById("missions");
+  mDiv.innerHTML="<h3>📋 Daily Missions</h3>";
+  dailyMissions.forEach((m,i)=>{
+    const mission=document.createElement("div"); mission.className="mission";
+    mission.innerHTML=`<span>${m.desc}</span><button>${m.completed?"✔ Done":"Claim"}</button>`;
+    mDiv.appendChild(mission);
+    mission.querySelector("button").addEventListener("click",()=>{
+      if(!m.completed){ m.completed=true; users[currentUser].xp+=m.reward; localStorage.setItem("users",JSON.stringify(users)); updateDisplay(m.reward); }
+    });
+  });
+}
+
+/* === ACHIEVEMENTS === */
+function updateAchievements(){
+  const achDiv=document.getElementById("achievements");
+  achDiv.innerHTML="<h3>🎖 Achievements</h3>";
+  const u=users[currentUser];
+  const newBadges=[];
+  if(u.xp>=100 && !u.achievements.includes("💯 100 XP")) newBadges.push("💯 100 XP");
+  if(u.strength>=15 && !u.achievements.includes("💪 STR 15")) newBadges.push("💪 STR 15");
+  if(u.exercises>=10 && !u.achievements.includes("⚡ 10 Exercises")) newBadges.push("⚡ 10 Exercises");
+  u.achievements.push(...newBadges);
+  localStorage.setItem("users",JSON.stringify(users));
+  u.achievements.forEach(badge=>{
+    const span=document.createElement("div"); span.className="badge"; span.textContent=badge;
+    achDiv.appendChild(span);
+  });
+}
+
+/* === FIREWORKS === */
+function createFireworks(){
+  for(let i=0;i<20;i++){
+    const f=document.createElement("div"); f.className="firework";
+    f.style.left=Math.random()*window.innerWidth+"px";
+    f.style.top="50%";
+    f.style.background=`hsl(${Math.random()*360},100%,50%)`;
+    document.body.appendChild(f);
+    setTimeout(()=>f.remove(),1000);
+  }
+}
+
+/* === INIT === */
+showScreen(loginScreen);
+</script>
+</body>
+</html>
